@@ -3,6 +3,150 @@
 ![Build Status](https://github.com/hartis-org/cvi-workflow/actions/workflows/docker-build.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Docker](https://img.shields.io/badge/container-ghcr.io-blue)
+![OGC](https://img.shields.io/badge/OGC-OSPD%20Pilot-blue)
+
+An automated, reproducible workflow for calculating the **Coastal Vulnerability Index (CVI)**. This system generates coastal transects, fetches satellite data (DEM, Land Cover), computes physical parameters, and classifies coastal risk based on the USGS/NOAA methodology.
+
+The workflow is implemented in **Common Workflow Language (CWL)** and runs inside a **Docker container**, ensuring it can be executed anywhere—from a local laptop to a High-Performance Computing (HPC) cluster or JupyterHub.
+
+---
+
+## 🏆 OGC Open Science Persistent Demonstrator (OSPD)
+
+This workflow is developed as a contribution to the **[OGC Open Science Persistent Demonstrator (OSPD) Pilot](https://www.ogc.org/initiatives/open-science/)**.
+
+It demonstrates a **reproducible, cloud-agnostic Earth Science workflow** by adhering to OSPD principles:
+*   **Standardization:** Uses **Common Workflow Language (CWL)** to ensure the logic runs on any compliant runner (cwltool, Argo, Toil).
+*   **Portability:** Uses **Docker/OCI Containers** to guarantee the exact same environment on a local laptop, JupyterHub, or HPC.
+*   **Open Science:** All inputs, code, and configuration are open and versioned, allowing full verification of the scientific results.
+
+---
+
+## 🌍 Scientific Overview
+
+The CVI assesses the susceptibility of a coastline to hazards like erosion and inundation. This workflow automates:
+
+1.  **Coastline Extraction:** Identifies the coastline for specific Areas of Interest (AOI).
+2.  **Transect Generation:** Creates perpendicular transects (e.g., every 500m) along the coast.
+3.  **Data Retrieval & Calculation:**
+    *   **Slope:** Derived from **Copernicus DEM (GLO-30)** via S3 API.
+    *   **Elevation:** Derived from Copernicus DEM.
+    *   **Land Cover:** Derived from ESA WorldCover/Global Land Cover.
+    *   **Erosion:** Calculated based on historical shoreline trends.
+4.  **Scoring & Classification:** Ranks variables (1–5) based on configurable thresholds.
+5.  **Final Index:** Computes the final CVI score (`sqrt(product/n)`).
+
+---
+
+## 📂 Repository Structure
+
+```text
+cvi-workflow/
+├── .github/workflows/   # GitHub Actions for building Docker images
+├── config/
+│   ├── cvi_scoring_simple.json  # Thresholds, weights, and scoring logic
+│   └── tokens.env.example       # Template for API credentials
+├── input_data/
+│   └── med_coastal_aois.csv     # List of locations to process
+├── steps/               # Python scripts for each workflow step
+│   ├── extract_coastline.py
+│   ├── generate_transects.py
+│   ├── compute_slope.py
+│   ├── compute_erosion.py
+│   └── ...
+├── cvi_workflow_docker.cwl # Main CWL Workflow definition (Dockerized)
+├── job_cvi.yaml         # Input parameters for the workflow run
+├── Dockerfile           # Environment definition (GDAL, Python libs)
+└── README.md            # This file
+```
+
+---
+
+## ⚙️ Prerequisites
+
+### 1. Credentials
+Access to the **Copernicus Dataspace Ecosystem (CDSE)** is required.
+1.  Create a file `config/tokens.env` based on `tokens.env.example`.
+2.  Add credentials:
+    ```bash
+    AWS_ACCESS_KEY_ID=<your_access_key>
+    AWS_SECRET_ACCESS_KEY=<your_secret_key>
+    AWS_ENDPOINT_URL=https://eodata.dataspace.copernicus.eu
+    AWS_DEFAULT_REGION=eu-central-1
+    ```
+
+### 2. Tools
+*   Python 3
+*   `cwltool` (`pip install cwltool`)
+
+---
+
+## 🚀 Execution
+
+This workflow runs using the container hosted at `ghcr.io/hartis-org/cvi-workflow:latest`.
+
+### Option A: Local Machine (Docker Enabled)
+```bash
+cwltool --outdir ./output_data cvi_workflow_docker.cwl job_cvi.yaml
+```
+
+### Option B: JupyterHub / OSPD Platform (Restricted)
+For OGC OSPD environments where users lack root Docker privileges, use **udocker**:
+
+1.  **Install & Config:**
+    ```bash
+    pip install udocker
+    udocker install
+    
+    # Fix execution permissions on shared environments (Crucial!)
+    mkdir -p ~/udocker_tmp
+    export PROOT_TMP_DIR=~/udocker_tmp
+    ```
+
+2.  **Login (If package is Private):**
+    ```bash
+    udocker login --username <github_user> --password <pat_token> ghcr.io
+    ```
+
+3.  **Run:**
+    ```bash
+    cwltool \
+      --user-space-docker-cmd=udocker \
+      --outdir ./output_data \
+      cvi_workflow_docker.cwl \
+      job_cvi.yaml
+    ```
+
+---
+
+## 📊 Outputs & Visualization
+
+Results are saved to `output_data/`. The final file `transects_with_cvi_equal.geojson` contains the calculated risk score and color codes.
+
+You can verify results using Python:
+```python
+import geopandas as gpd
+import folium
+
+gdf = gpd.read_file("output_data/transects_with_cvi_equal.geojson")
+m = folium.Map(location=[37.0, 25.0], zoom_start=10)
+folium.GeoJson(gdf, style_function=lambda x: {'color': x['properties']['CVI_equal_color']}).add_to(m)
+m
+```
+
+---
+
+**Author:** HARTIS Integrated Nautical Services  
+**Repository:** [github.com/hartis-org/cvi-workflow](https://github.com/hartis-org/cvi-workflow)  
+**Initiative:** [OGC Open Science Persistent Demonstrator](https://www.ogc.org/initiatives/open-science/)
+
+
+
+# Coastal Vulnerability Index (CVI) Workflow
+
+![Build Status](https://github.com/hartis-org/cvi-workflow/actions/workflows/docker-build.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Docker](https://img.shields.io/badge/container-ghcr.io-blue)
 
 An automated, reproducible workflow for calculating the **Coastal Vulnerability Index (CVI)**. This system generates coastal transects, fetches satellite data (DEM, Land Cover), computes physical parameters, and classifies coastal risk based on the USGS/NOAA methodology.
 
