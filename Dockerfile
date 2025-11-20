@@ -6,7 +6,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 1. Install compilers and system dependencies
-# We need python3-pip and build tools
 RUN apt-get update && apt-get install -y \
     python3-pip \
     build-essential \
@@ -20,6 +19,6 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 2. Install Python libraries
-# FIX: We removed the '--upgrade pip setuptools wheel' command.
-# The system versions are recent enough, and upgrading them causes conflicts.
-RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
+# FIX: Added '--ignore-installed'.
+# This forces pip to overwrite system packages (like numpy) instead of failing to uninstall them.
+RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed -r requirements.txt
