@@ -1,19 +1,23 @@
-# Use the geospatial base image (includes Python + GDAL)
+# Use the geospatial base image
 FROM ghcr.io/osgeo/gdal:ubuntu-small-latest
 
-# Set environment variables
+# Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install pip
-RUN apt-get update && apt-get install -y python3-pip && rm -rf /var/lib/apt/lists/*
+# 1. Install system dependencies
+# We upgrade pip to ensure we get the latest compatible wheels
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install them
+# Copy requirements
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
 
-# (Optional) We don't copy the scripts here because CWL injects them.
-# This image serves as the "Runtime Environment".
+# 2. Install Python libraries
+# CRITICAL CHANGE: Added '--break-system-packages' to bypass Ubuntu restrictions
+RUN pip3 install --break-system-packages --no-cache-dir --upgrade pip && \
+    pip3 install --break-system-packages --no-cache-dir -r requirements.txt
