@@ -7,6 +7,10 @@
 
 An automated, reproducible workflow for calculating the **Coastal Vulnerability Index (CVI)**. This system generates coastal transects, fetches satellite data (DEM, Land Cover), computes physical parameters, and classifies coastal risk based on the USGS/NOAA methodology.
 
+Click the map below to view the interactive version:
+
+[![CVI Map](docs/cvi_map.jpg)](https://hartis-org.github.io/cvi-workflow/)
+
 The workflow is implemented in **Common Workflow Language (CWL)** and runs inside a **Docker container**, ensuring it can be executed anywhere—from a local laptop to a High-Performance Computing (HPC) cluster or JupyterHub.
 
 
@@ -150,10 +154,6 @@ To change how risk categories are defined (e.g., changing "High Risk" slope from
 
 
 ## Visualization
-
-Click the map below to view the interactive version:
-
-[![CVI Map](docs/cvi_map.jpg)](https://htmlpreview.github.io/?https://github.com/hartis-org/cvi-workflow/blob/main/docs/cvi_map.html)
 
 The output GeoJSON files contain pre-calculated color codes defined in the config. You can verify the results using Python/Folium:
 
