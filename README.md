@@ -151,7 +151,9 @@ To change how risk categories are defined (e.g., changing "High Risk" slope from
 
 ## Visualization
 
-[View the Interactive GeoJSON on GitHub](output_data/transects_with_cvi_equal.geojson)
+Click the map below to view the interactive version:
+
+[![CVI Map](docs/cvi_map.jpg)](https://htmlpreview.github.io/?https://github.com/hartis-org/cvi-workflow/docs/cvi_map.html)
 
 The output GeoJSON files contain pre-calculated color codes defined in the config. You can verify the results using Python/Folium:
 
