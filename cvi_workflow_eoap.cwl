@@ -15,6 +15,10 @@ $graph:
       It processes coastline data, generates transects, computes various coastal parameters
       (landcover, slope, erosion, elevation), and calculates the final CVI values.
     
+    requirements:
+      StepInputExpressionRequirement: {}
+      InlineJavascriptRequirement: {}
+    
     s:author:
       - class: s:Person
         s:name: HARTIS Organization
@@ -27,20 +31,23 @@ $graph:
     s:keywords: CVI, coastal vulnerability, Mediterranean, earth observation
     
     inputs:
-      config_json:
-        type: File
-        label: Configuration JSON
-        doc: Configuration file for CVI computation parameters
+      config_stac_item_url:
+        type: string
+        label: Configuration STAC item URL
+        doc: URL of the STAC item containing the configuration JSON file
+        default: "https://eocatalog.p2.csgroup.space/collections/cvi-workflow-resources/items/cvi-scoring-configuration"
       
-      med_aois_csv:
-        type: File
-        label: Mediterranean AOIs CSV
-        doc: CSV file containing Mediterranean areas of interest
+      aois_stac_item_url:
+        type: string
+        label: AOIs STAC item URL
+        doc: URL of the STAC item containing the Mediterranean AOIs CSV file
+        default: "https://eocatalog.p2.csgroup.space/collections/cvi-workflow-resources/items/mediterranean-coastal-aois"
       
-      tokens_env:
-        type: File
-        label: Authentication tokens
-        doc: Environment file with authentication tokens for data access
+      tokens_stac_item_url:
+        type: string
+        label: Tokens STAC item URL
+        doc: URL of the STAC item containing the authentication tokens file
+        default: "https://eocatalog.p2.csgroup.space/collections/cvi-workflow-resources/items/cvi-authentication-template"
       
       output_dir:
         type: string
@@ -98,17 +105,45 @@ $graph:
         outputSource: compute_cvi/out_geojson
     
     steps:
+      node_eodag_download_config:
+        label: Download configuration [EODAG]
+        doc: Download the configuration JSON file from STAC item
+        run: '#eodag_search'
+        in:
+          stac_item_url: config_stac_item_url
+        out: [data_output_dir]
+      
+      node_eodag_download_aois:
+        label: Download AOIs [EODAG]
+        doc: Download the Mediterranean AOIs CSV from STAC item
+        run: '#eodag_search'
+        in:
+          stac_item_url: aois_stac_item_url
+        out: [data_output_dir]
+      
+      node_eodag_download_tokens:
+        label: Download tokens [EODAG]
+        doc: Download the authentication tokens file from STAC item
+        run: '#eodag_search'
+        in:
+          stac_item_url: tokens_stac_item_url
+        out: [data_output_dir]
+      
       setup_env:
         run: "#setup-env-tool"
         in:
-          config_json: config_json
+          config_json:
+            source: node_eodag_download_config/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.json$/i); })[0])
           output_dir: output_dir
         out: [config_validated]
       
       extract_coastline:
         run: "#extract-coastline-tool"
         in:
-          med_aois_csv: med_aois_csv
+          med_aois_csv:
+            source: node_eodag_download_aois/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.csv$/i); })[0])
           output_dir: output_dir
         out: [coastline_gpkg]
       
@@ -124,7 +159,9 @@ $graph:
         in:
           script: { default: { class: File, location: steps/compute_landcover.py } }
           transects_geojson: generate_transects/transects_geojson
-          tokens_env: tokens_env
+          tokens_env:
+            source: node_eodag_download_tokens/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.env$/i); })[0])
           config_json: setup_env/config_validated
           output_dir: output_dir
         out: [result]
@@ -134,7 +171,9 @@ $graph:
         in:
           script: { default: { class: File, location: steps/compute_slope.py } }
           transects_geojson: generate_transects/transects_geojson
-          tokens_env: tokens_env
+          tokens_env:
+            source: node_eodag_download_tokens/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.env$/i); })[0])
           config_json: setup_env/config_validated
           output_dir: output_dir
         out: [result]
@@ -144,7 +183,9 @@ $graph:
         in:
           script: { default: { class: File, location: steps/compute_erosion.py } }
           transects_geojson: generate_transects/transects_geojson
-          tokens_env: tokens_env
+          tokens_env:
+            source: node_eodag_download_tokens/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.env$/i); })[0])
           config_json: setup_env/config_validated
           output_dir: output_dir
         out: [result]
@@ -154,7 +195,9 @@ $graph:
         in:
           script: { default: { class: File, location: steps/compute_elevation.py } }
           transects_geojson: generate_transects/transects_geojson
-          tokens_env: tokens_env
+          tokens_env:
+            source: node_eodag_download_tokens/data_output_dir
+            valueFrom: $(self.listing.filter(function(f) { return f.basename.match(/.*\.env$/i); })[0])
           config_json: setup_env/config_validated
           output_dir: output_dir
         out: [result]
@@ -431,3 +474,40 @@ $graph:
         outputBinding:
           glob: "$(inputs.output_dir)/transects_with_cvi_equal.geojson"
         doc: Final CVI results GeoJSON
+
+  - class: CommandLineTool
+    id: eodag_search
+    label: Download input data
+    doc: Downloads STAC item assets using EODAG
+    
+    s:softwareVersion: latest
+    
+    hints:
+      DockerRequirement:
+        dockerPull: |-
+          643vlk6z.gra7.container-registry.ovh.net/space_applications/eodag:3.6.0
+    
+    requirements:
+      InlineJavascriptRequirement: {}
+      NetworkAccess:
+        networkAccess: true
+    
+    baseCommand: [eodag, download]
+    
+    arguments:
+      - prefix: "--output-dir"
+        valueFrom: $(runtime.outdir)
+    
+    inputs:
+      stac_item_url:
+        type: string
+        inputBinding:
+          prefix: "--stac-item"
+        doc: URL of the STAC item to download
+    
+    outputs:
+      data_output_dir:
+        type: Directory
+        outputBinding:
+          glob: $(runtime.outdir)/*
+        doc: Directory containing downloaded STAC item assets
