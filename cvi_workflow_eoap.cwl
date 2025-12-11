@@ -462,7 +462,7 @@ $graph:
     hints:
       DockerRequirement:
         dockerPull: |-
-          ghcr.io/cs-si/eodag:3.10.0
+          ghcr.io/cs-si/eodag:v3.10.x
     
     requirements:
       InlineJavascriptRequirement: {}
