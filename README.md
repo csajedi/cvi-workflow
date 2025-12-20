@@ -363,6 +363,49 @@ m
 
 ---
 
-**Author:** [HARTIS Integrated Nautical Services PC](https://www.hartis.org)  
-**Repository:** [github.com/hartis-org/cvi-workflow](https://github.com/hartis-org/cvi-workflow)  
+## Temporal Analysis (Land Cover Change Detection)
+
+The workflow supports **year-over-year land cover comparison** using ESA WorldCover 2020 and 2021 data.
+
+### Usage
+
+Run the land cover step with an explicit year parameter:
+
+```bash
+# Using Docker directly
+docker run --rm \
+  -v $(pwd)/output_data:/data \
+  -v $(pwd)/steps:/steps:ro \
+  -v $(pwd)/config:/config:ro \
+  ghcr.io/hartis-org/cvi-workflow:latest \
+  python3 /steps/compute_landcover.py \
+    /data/transects.geojson \
+    /config/tokens.env \
+    /data/config_validated.json \
+    /data \
+    2020  # or 2021
+```
+
+### Case Study: Sundarbans Cyclone Amphan
+
+We tested temporal analysis on the Sundarbans mangrove delta to assess Cyclone Amphan (May 2020) damage:
+
+| Location | Transects | Mangrove Change 2020→2021 |
+|----------|-----------|---------------------------|
+| Inland (protected) | 285 | -0.4% (stable) |
+| **Seaward (exposed)** | 995 | **-8.3% (damage)** |
+
+**Key finding:** Study design critically affects results. See [docs/case_studies/sundarbans_cyclone_amphan.md](docs/case_studies/sundarbans_cyclone_amphan.md) for full analysis.
+
+### Known Limitations
+
+- **Default 50km coastline limit** - Configurable in `steps/generate_transects.py` (`max_length_m` parameter)
+- **Transect starting point** - Algorithm begins at westernmost coastline point
+- **Annual data only** - ESA WorldCover provides yearly composites (2020, 2021), not suitable for event-scale (days/weeks) damage assessment
+- **For cyclone/disaster analysis** - Recommend Sentinel-2 NDVI time series with specific pre/post dates
+
+---
+
+**Author:** [HARTIS Integrated Nautical Services PC](https://www.hartis.org)
+**Repository:** [github.com/hartis-org/cvi-workflow](https://github.com/hartis-org/cvi-workflow)
 **Initiative:** [OGC Open Science Persistent Demonstrator](https://www.ogc.org/initiatives/open-science/)
