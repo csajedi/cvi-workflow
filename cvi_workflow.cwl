@@ -2,6 +2,10 @@ cwlVersion: v1.2
 class: Workflow
 label: CVI Workflow (Dockerized)
 
+requirements:
+  NetworkAccess:
+    networkAccess: true
+
 inputs:
   config_json: File
   med_aois_csv: File
@@ -63,6 +67,8 @@ steps:
         DockerRequirement: *docker_image
       requirements:
         InlineJavascriptRequirement: {}
+        NetworkAccess:
+          networkAccess: true
         InitialWorkDirRequirement:
           listing:
             - { entry: $(inputs.script), entryname: extract_coastline.py }
@@ -117,6 +123,8 @@ steps:
         DockerRequirement: *docker_image
       requirements:
         InlineJavascriptRequirement: {}
+        NetworkAccess:
+          networkAccess: true
         InitialWorkDirRequirement:
           listing:
             - entry: $(inputs.transects_geojson)

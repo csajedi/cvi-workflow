@@ -8,7 +8,11 @@ and color, and writes a GeoJSON output.
 
 CWL-ready version:
   Usage:
-    compute_landcover.py <transects.geojson> <tokens.env> <config.json> <output_dir>
+    compute_landcover.py <transects.geojson> <tokens.env> <config.json> <output_dir> [year]
+
+  year: 2020 or 2021 (default: 2021)
+    - 2020 uses ESA WorldCover v100
+    - 2021 uses ESA WorldCover v200
 
 Output is always written to:
     <output_dir>/transects_with_land_cover.geojson
@@ -80,13 +84,23 @@ def classify_land_cover_code(code, lookup):
 # -------------------------------------------------------------------
 def main():
     if len(sys.argv) < 5:
-        print("Usage: compute_landcover.py <transects.geojson> <tokens.env> <config.json> <output_dir>")
+        print("Usage: compute_landcover.py <transects.geojson> <tokens.env> <config.json> <output_dir> [year]")
         sys.exit(1)
 
     transects_fp = Path(sys.argv[1])
     tokens_fp    = Path(sys.argv[2])
     config_fp    = Path(sys.argv[3])
     out_dir      = Path(sys.argv[4]).resolve()
+
+    # Year parameter: 2020 or 2021 (default: 2021)
+    year = int(sys.argv[5]) if len(sys.argv) > 5 else 2021
+    if year not in (2020, 2021):
+        print(f"⚠️ Invalid year {year}, using 2021")
+        year = 2021
+
+    # ESA WorldCover version differs by year
+    version = "v100" if year == 2020 else "v200"
+    print(f"🔹 Using ESA WorldCover {year} ({version})")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "transects_with_land_cover.geojson"
@@ -110,7 +124,7 @@ def main():
 
     LC_LOOKUP = build_lc_lookup(cfg)
 
-    LANDCOVER_PREFIX = "auxdata/ESA_WORLD_COVER/2021/"
+    LANDCOVER_PREFIX = f"auxdata/ESA_WORLD_COVER/{year}/"
     BUCKET_NAME = "eodata"
 
     # ------------------------------------------------------------------
@@ -135,7 +149,7 @@ def main():
     print("🔹 Tiles covering AOI:", tile_ids)
 
     tile_keys = [
-        f"{LANDCOVER_PREFIX}ESA_WorldCover_10m_2021_v200_{tid}/ESA_WorldCover_10m_2021_v200_{tid}_Map.tif"
+        f"{LANDCOVER_PREFIX}ESA_WorldCover_10m_{year}_{version}_{tid}/ESA_WorldCover_10m_{year}_{version}_{tid}_Map.tif"
         for tid in tile_ids
     ]
 

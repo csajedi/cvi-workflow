@@ -72,7 +72,7 @@ def generate_transects_from_coastline(
     coastline_gdf,
     spacing=50,
     length=400,
-    max_length_m=15000,
+    max_length_m=50000,  # Increased from 15km to 50km for larger study areas
     out_path="transects.geojson",
 ):
     coast = coastline_gdf.to_crs(3857)
@@ -161,7 +161,7 @@ def main():
         gdf,
         spacing=50,
         length=400,
-        max_length_m=15000,
+        max_length_m=50000,  # 50km coverage for regional studies
         out_path=str(out_path),
     )
 
